@@ -6,10 +6,24 @@ import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Heart, Menu, X, FileText, Calendar, Bell, Activity, LogOut, Settings, Users, DropletIcon } from "lucide-react"
+import {
+  Heart,
+  Menu,
+  X,
+  FileText,
+  Calendar,
+  Bell,
+  Activity,
+  LogOut,
+  Settings,
+  Users,
+  DropletIcon,
+  UserPlus,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getUserRole, logoutUser, getCurrentUser } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
+import { LoadingIndicator } from "@/components/loading-indicator"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -56,6 +70,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   if (userRole === "admin" || userRole === "doctor" || userRole === "secretary") {
     navigation.push({ name: "Dons de sang", href: "/dashboard/blood-donation", icon: DropletIcon })
+  }
+
+  // Ajouter l'élément pour la gestion des utilisateurs
+  if (userRole === "admin" || userRole === "secretary") {
+    navigation.push({ name: "Gestion des utilisateurs", href: "/dashboard/admin/users", icon: UserPlus })
   }
 
   return (
@@ -225,6 +244,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">{children}</div>
           </div>
         </main>
+
+        {/* Ajouter l'indicateur de chargement ici */}
+        <LoadingIndicator />
       </div>
     </div>
   )
