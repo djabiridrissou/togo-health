@@ -8,7 +8,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Heart, Menu, X, FileText, Calendar, Bell, Activity, LogOut, Settings, Users, DropletIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getUserRole, logoutUser, getCurrentUser } from "@/lib/auth"
+import { getUserRole, logoutUser, getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
 
 interface DashboardLayoutProps {
@@ -24,6 +24,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { toast } = useToast()
 
   useEffect(() => {
+    // Vérifier si l'utilisateur est authentifié
+    if (!isAuthenticated()) {
+      toast({
+        title: "Accès refusé",
+        description: "Vous devez être connecté pour accéder à cette page.",
+        variant: "destructive",
+      })
+      router.push("/login")
+      return
+    }
+
     const role = getUserRole()
     setUserRole(role)
 
@@ -31,7 +42,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     if (user) {
       setUserName(`${user.firstName} ${user.lastName}`)
     }
-  }, [])
+  }, [router, toast])
 
   const handleLogout = () => {
     logoutUser()
@@ -47,15 +58,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Dossier médical", href: "/dashboard/medical-record", icon: FileText },
     { name: "Rendez-vous", href: "/dashboard/appointments", icon: Calendar },
     { name: "Médicaments", href: "/dashboard/medications", icon: Bell },
+    { name: "Dons de sang", href: "/dashboard/blood-donation", icon: DropletIcon },
   ]
 
   // Ajouter des éléments de navigation spécifiques au rôle
   if (userRole === "admin" || userRole === "doctor" || userRole === "secretary") {
     navigation.push({ name: "Patients", href: "/dashboard/patients", icon: Users })
-  }
-
-  if (userRole === "admin" || userRole === "doctor" || userRole === "secretary") {
-    navigation.push({ name: "Dons de sang", href: "/dashboard/blood-donation", icon: DropletIcon })
   }
 
   return (

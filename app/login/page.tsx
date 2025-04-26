@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Heart, ArrowLeft } from "lucide-react"
-import { loginUser } from "@/lib/auth"
+import { loginUser, isAuthenticated } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
@@ -19,6 +19,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+
+  // Rediriger si déjà connecté
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.push("/dashboard")
+    }
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,6 +47,30 @@ export default function LoginPage() {
           description: "Email ou mot de passe incorrect.",
           variant: "destructive",
         })
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite. Veuillez réessayer.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fonction pour se connecter rapidement avec un compte de démonstration
+  const handleDemoLogin = async () => {
+    setIsLoading(true)
+    try {
+      const success = await loginUser("demo@example.com", "demo123")
+      if (success) {
+        toast({
+          title: "Connexion démo réussie",
+          description: "Vous êtes connecté avec un compte de démonstration.",
+          variant: "default",
+        })
+        router.push("/dashboard")
       }
     } catch (error) {
       toast({
@@ -97,6 +128,9 @@ export default function LoginPage() {
                 required
               />
             </div>
+            <Button type="button" variant="outline" className="w-full" onClick={handleDemoLogin} disabled={isLoading}>
+              Connexion rapide (Démo)
+            </Button>
           </CardContent>
           <CardFooter className="flex flex-col">
             <Button type="submit" className="w-full" disabled={isLoading}>
