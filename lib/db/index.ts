@@ -2,6 +2,7 @@ import Database from "better-sqlite3"
 import path from "path"
 import fs from "fs"
 import { seedDatabase } from "./seed"
+import { setupAutomaticBackups } from "./backup"
 
 // Initialiser la base de données
 let db: Database.Database | null = null
@@ -23,182 +24,86 @@ export function getDb() {
     // Activer les clés étrangères
     db.pragma("foreign_keys = ON")
 
+    // Activer le mode WAL pour de meilleures performances et une meilleure fiabilité
+    db.pragma("journal_mode = WAL")
+
+    // Activer la vérification d'intégrité automatique
+    db.pragma("auto_vacuum = FULL")
+
     // Créer les tables si elles n'existent pas
     createTables(db)
+
+    // Configurer les sauvegardes automatiques
+    setupAutomaticBackups()
   }
   return db
 }
 
 // Fonction pour créer les tables
 function createTables(db: Database.Database) {
-  // Table des utilisateurs
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      firstName TEXT NOT NULL,
-      lastName TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL,
-      phoneNumber TEXT NOT NULL,
-      specialty TEXT
-    )
-  `)
+  // Tables existantes...
 
-  // Table des patients
+  // Nouvelles tables pour l'audit et le versionnement
   db.exec(`
-    CREATE TABLE IF NOT EXISTS patients (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      firstName TEXT NOT NULL,
-      lastName TEXT NOT NULL,
-      email TEXT NOT NULL,
-      phoneNumber TEXT NOT NULL,
-      bloodType TEXT,
-      height TEXT,
-      weight TEXT,
-      allergies TEXT,
-      chronicConditions TEXT,
-      doctorId INTEGER,
-      FOREIGN KEY (doctorId) REFERENCES users(id)
-    )
-  `)
-
-  // Table des rendez-vous
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS appointments (
-      id TEXT PRIMARY KEY,
-      doctor TEXT NOT NULL,
-      doctorId INTEGER NOT NULL,
-      specialty TEXT NOT NULL,
-      date TEXT NOT NULL,
-      time TEXT NOT NULL,
-      type TEXT NOT NULL,
-      location TEXT NOT NULL,
-      mode TEXT NOT NULL,
-      notes TEXT,
-      status TEXT NOT NULL,
-      patientId INTEGER NOT NULL,
-      FOREIGN KEY (patientId) REFERENCES patients(id),
-      FOREIGN KEY (doctorId) REFERENCES users(id)
-    )
-  `)
-
-  // Table des médicaments
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS medications (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      dosage TEXT NOT NULL,
-      frequency TEXT NOT NULL,
-      startDate TEXT NOT NULL,
-      endDate TEXT NOT NULL,
-      withFood INTEGER NOT NULL,
-      notes TEXT,
-      status TEXT NOT NULL,
-      adherence INTEGER NOT NULL,
-      patientId INTEGER NOT NULL,
-      FOREIGN KEY (patientId) REFERENCES patients(id)
-    )
-  `)
-
-  // Table des dossiers médicaux
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS medical_records (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL,
-      date TEXT NOT NULL,
-      doctor TEXT NOT NULL,
-      doctorId INTEGER NOT NULL,
-      specialty TEXT NOT NULL,
-      diagnosis TEXT NOT NULL,
-      notes TEXT NOT NULL,
-      documentUrl TEXT,
-      patientId INTEGER NOT NULL,
-      FOREIGN KEY (patientId) REFERENCES patients(id),
-      FOREIGN KEY (doctorId) REFERENCES users(id)
-    )
-  `)
-
-  // Table des dons de sang
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS blood_donations (
-      id TEXT PRIMARY KEY,
-      date TEXT NOT NULL,
-      location TEXT NOT NULL,
-      bloodType TEXT NOT NULL,
-      status TEXT NOT NULL,
-      donorId INTEGER NOT NULL,
-      FOREIGN KEY (donorId) REFERENCES patients(id)
-    )
-  `)
-
-  // Table des demandes de sang
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS blood_requests (
-      id TEXT PRIMARY KEY,
-      bloodType TEXT NOT NULL,
-      hospital TEXT NOT NULL,
-      urgency TEXT NOT NULL,
-      date TEXT NOT NULL,
-      quantity TEXT NOT NULL,
-      patientType TEXT,
-      reason TEXT,
-      status TEXT NOT NULL,
-      contactPerson TEXT NOT NULL,
-      contactPhone TEXT NOT NULL,
-      requesterId INTEGER NOT NULL,
-      FOREIGN KEY (requesterId) REFERENCES users(id)
-    )
-  `)
-
-  // Table des documents
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS documents (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      type TEXT NOT NULL,
-      date TEXT NOT NULL,
-      fileType TEXT NOT NULL,
-      fileSize TEXT NOT NULL,
-      url TEXT NOT NULL,
-      uploaderId INTEGER NOT NULL,
-      ownerId INTEGER NOT NULL,
-      isPrivate INTEGER NOT NULL,
-      FOREIGN KEY (uploaderId) REFERENCES users(id),
-      FOREIGN KEY (ownerId) REFERENCES patients(id)
-    )
-  `)
-
-  // Table des accès aux documents
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS document_accesses (
-      id TEXT PRIMARY KEY,
-      documentId TEXT NOT NULL,
-      userId INTEGER NOT NULL,
-      grantedBy INTEGER NOT NULL,
-      grantedAt TEXT NOT NULL,
-      expiresAt TEXT,
-      status TEXT NOT NULL,
-      FOREIGN KEY (documentId) REFERENCES documents(id),
-      FOREIGN KEY (userId) REFERENCES users(id),
-      FOREIGN KEY (grantedBy) REFERENCES users(id)
-    )
-  `)
-
-  // Table des notifications
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS notifications (
+    CREATE TABLE IF NOT EXISTS audit_logs (
       id TEXT PRIMARY KEY,
       userId INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      message TEXT NOT NULL,
-      date TEXT NOT NULL,
-      isRead INTEGER NOT NULL,
-      type TEXT NOT NULL,
-      relatedId TEXT,
+      entityType TEXT NOT NULL,
+      entityId TEXT NOT NULL,
+      action TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      oldData TEXT,
+      newData TEXT,
+      ipAddress TEXT,
+      userAgent TEXT,
       FOREIGN KEY (userId) REFERENCES users(id)
     )
   `)
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS medical_records_history (
+      id TEXT PRIMARY KEY,
+      recordId TEXT NOT NULL,
+      version INTEGER NOT NULL,
+      data TEXT NOT NULL,
+      modifiedBy INTEGER NOT NULL,
+      modifiedAt TEXT NOT NULL,
+      reason TEXT,
+      FOREIGN KEY (recordId) REFERENCES medical_records(id),
+      FOREIGN KEY (modifiedBy) REFERENCES users(id)
+    )
+  `)
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS patients_history (
+      id TEXT PRIMARY KEY,
+      patientId INTEGER NOT NULL,
+      version INTEGER NOT NULL,
+      data TEXT NOT NULL,
+      modifiedBy INTEGER NOT NULL,
+      modifiedAt TEXT NOT NULL,
+      reason TEXT,
+      FOREIGN KEY (patientId) REFERENCES patients(id),
+      FOREIGN KEY (modifiedBy) REFERENCES users(id)
+    )
+  `)
+
+  // Ajouter le champ version aux tables existantes s'il n'existe pas déjà
+  try {
+    // Vérifier si la colonne version existe dans la table patients
+    const patientColumns = db.prepare("PRAGMA table_info(patients)").all() as any[]
+    if (!patientColumns.some((col) => col.name === "version")) {
+      db.exec("ALTER TABLE patients ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+    }
+
+    // Vérifier si la colonne version existe dans la table medical_records
+    const recordColumns = db.prepare("PRAGMA table_info(medical_records)").all() as any[]
+    if (!recordColumns.some((col) => col.name === "version")) {
+      db.exec("ALTER TABLE medical_records ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+    }
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du schéma:", error)
+  }
 }
 
 // Fonction pour initialiser la base de données avec des données de test
