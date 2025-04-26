@@ -60,7 +60,7 @@ let db: IDBPDatabase<SanteTogoDBSchema> | null = null
 
 // Replace the seedInitialData function with this version that uses the transaction provided by the upgrade callback
 
-async function seedInitialData(db: IDBPDatabase<SanteTogoDBSchema>) {
+async function seedInitialData(db: IDBPDatabase<SanteTogoDBSchema>, transaction: IDBTransaction) {
   // Seed users
   const users = [
     {
@@ -281,31 +281,31 @@ async function seedInitialData(db: IDBPDatabase<SanteTogoDBSchema>) {
 
   // Add all data using the transaction from the upgrade callback
   for (const user of users) {
-    db.add("users", user)
+    transaction.objectStore("users").add(user)
   }
 
   for (const patient of patients) {
-    db.add("patients", patient)
+    transaction.objectStore("patients").add(patient)
   }
 
   for (const appointment of appointments) {
-    db.add("appointments", appointment)
+    transaction.objectStore("appointments").add(appointment)
   }
 
   for (const medication of medications) {
-    db.add("medications", medication)
+    transaction.objectStore("medications").add(medication)
   }
 
   for (const record of medicalRecords) {
-    db.add("medicalRecords", record)
+    transaction.objectStore("medicalRecords").add(record)
   }
 
   for (const donation of bloodDonations) {
-    db.add("bloodDonations", donation)
+    transaction.objectStore("bloodDonations").add(donation)
   }
 
   for (const request of bloodRequests) {
-    db.add("bloodRequests", request)
+    transaction.objectStore("bloodRequests").add(request)
   }
 }
 
@@ -315,7 +315,7 @@ export async function initDB() {
 
   try {
     db = await openDB<SanteTogoDBSchema>("santeTogo", 1, {
-      upgrade(db) {
+      upgrade(db, oldVersion, newVersion, transaction) {
         // Users store
         if (!db.objectStoreNames.contains("users")) {
           const userStore = db.createObjectStore("users", { keyPath: "id" })
@@ -358,14 +358,32 @@ export async function initDB() {
           patientStore.createIndex("by-doctor", "doctorId", { unique: false })
         }
 
-        // Seed initial data
-        seedInitialData(db)
+        // Seed initial data using the transaction provided by the upgrade callback
+        seedInitialData(db, transaction)
+      },
+      blocked() {
+        console.warn("Database opening blocked. Another tab might be using it.")
+      },
+      blocking() {
+        console.warn("This tab is blocking a database upgrade.")
+      },
+      terminated() {
+        console.error("Database connection was terminated unexpectedly.")
+        db = null
       },
     })
 
     return db
   } catch (error) {
     console.error("Error initializing database:", error)
+
+    // Provide a more detailed error message
+    if (error instanceof DOMException && error.name === "InvalidStateError") {
+      console.error(
+        "InvalidStateError: This usually happens when trying to create a new transaction while a version change transaction is running.",
+      )
+    }
+
     throw error
   }
 }

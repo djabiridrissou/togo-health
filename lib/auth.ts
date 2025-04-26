@@ -1,6 +1,7 @@
 "use client"
 
 import { getUserByEmail, addUser, initDB } from "./db"
+import type { UserRole } from "./permissions"
 
 // Initialiser la base de données au démarrage
 if (typeof window !== "undefined") {
@@ -17,9 +18,12 @@ export function initCurrentUser() {
     if (storedUser) {
       try {
         currentUser = JSON.parse(storedUser)
+        // Stocker également le rôle séparément pour un accès facile
+        localStorage.setItem("userRole", currentUser.role)
       } catch (error) {
         console.error("Erreur lors de la récupération de l'utilisateur:", error)
         localStorage.removeItem("currentUser")
+        localStorage.removeItem("userRole")
       }
     }
   }
@@ -38,6 +42,7 @@ export async function loginUser(email: string, password: string): Promise<boolea
     if (user && user.password === password) {
       // Stocker l'utilisateur dans localStorage
       localStorage.setItem("currentUser", JSON.stringify(user))
+      localStorage.setItem("userRole", user.role)
       currentUser = user
       return true
     }
@@ -56,6 +61,7 @@ export async function loginUser(email: string, password: string): Promise<boolea
       const userId = await addUser(demoUser)
       const newUser = { ...demoUser, id: userId }
       localStorage.setItem("currentUser", JSON.stringify(newUser))
+      localStorage.setItem("userRole", newUser.role)
       currentUser = newUser
       return true
     }
@@ -76,6 +82,7 @@ export async function loginUser(email: string, password: string): Promise<boolea
         phoneNumber: "+228 00000000",
       }
       localStorage.setItem("currentUser", JSON.stringify(fallbackUser))
+      localStorage.setItem("userRole", fallbackUser.role)
       currentUser = fallbackUser
       return true
     }
@@ -100,6 +107,7 @@ export async function registerUser(userData: any): Promise<boolean> {
     // Connecter automatiquement l'utilisateur après l'inscription
     const newUser = { ...userData, id: userId }
     localStorage.setItem("currentUser", JSON.stringify(newUser))
+    localStorage.setItem("userRole", newUser.role)
     currentUser = newUser
 
     return true
@@ -112,6 +120,7 @@ export async function registerUser(userData: any): Promise<boolean> {
       ...userData,
     }
     localStorage.setItem("currentUser", JSON.stringify(fallbackUser))
+    localStorage.setItem("userRole", fallbackUser.role)
     currentUser = fallbackUser
     return true
   }
@@ -120,6 +129,7 @@ export async function registerUser(userData: any): Promise<boolean> {
 // Fonction de déconnexion
 export function logoutUser(): void {
   localStorage.removeItem("currentUser")
+  localStorage.removeItem("userRole")
   currentUser = null
 
   // Rediriger vers la page d'accueil
@@ -139,7 +149,7 @@ export function getCurrentUser(): any {
 }
 
 // Obtenir le rôle de l'utilisateur
-export function getUserRole(): string | null {
+export function getUserRole(): UserRole | null {
   const user = getCurrentUser()
   return user ? user.role : null
 }
@@ -150,19 +160,19 @@ export function isAuthenticated(): boolean {
 }
 
 // Vérifier si l'utilisateur a un rôle spécifique
-export function hasRole(role: string): boolean {
+export function hasRole(role: UserRole): boolean {
   const user = getCurrentUser()
   return user ? user.role === role : false
 }
 
 // Vérifier si l'utilisateur a l'un des rôles spécifiés
-export function hasAnyRole(roles: string[]): boolean {
+export function hasAnyRole(roles: UserRole[]): boolean {
   const user = getCurrentUser()
-  return user ? roles.includes(user.role) : false
+  return user ? roles.includes(user.role as UserRole) : false
 }
 
 // Middleware pour protéger les routes
-export function authMiddleware(allowedRoles: string[] = []): boolean {
+export function authMiddleware(allowedRoles: UserRole[] = []): boolean {
   const user = getCurrentUser()
 
   if (!user) {
@@ -173,5 +183,5 @@ export function authMiddleware(allowedRoles: string[] = []): boolean {
     return true
   }
 
-  return allowedRoles.includes(user.role)
+  return allowedRoles.includes(user.role as UserRole)
 }

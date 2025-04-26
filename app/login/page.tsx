@@ -60,14 +60,32 @@ export default function LoginPage() {
   }
 
   // Fonction pour se connecter rapidement avec un compte de démonstration
-  const handleDemoLogin = async () => {
+  const handleDemoLogin = async (role: string) => {
     setIsLoading(true)
     try {
-      const success = await loginUser("demo@example.com", "demo123")
+      let demoEmail = "patient@example.com"
+      const demoPassword = "password123"
+
+      switch (role) {
+        case "patient":
+          demoEmail = "patient@example.com"
+          break
+        case "doctor":
+          demoEmail = "doctor@example.com"
+          break
+        case "secretary":
+          demoEmail = "secretary@example.com"
+          break
+        case "admin":
+          demoEmail = "admin@example.com"
+          break
+      }
+
+      const success = await loginUser(demoEmail, demoPassword)
       if (success) {
         toast({
-          title: "Connexion démo réussie",
-          description: "Vous êtes connecté avec un compte de démonstration.",
+          title: `Connexion en tant que ${role} réussie`,
+          description: `Vous êtes connecté avec un compte de démonstration (${role}).`,
           variant: "default",
         })
         router.push("/dashboard")
@@ -128,9 +146,28 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <Button type="button" variant="outline" className="w-full" onClick={handleDemoLogin} disabled={isLoading}>
-              Connexion rapide (Démo)
-            </Button>
+            <div className="space-y-2">
+              <Label>Connexion rapide (Démo)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant="outline" onClick={() => handleDemoLogin("patient")} disabled={isLoading}>
+                  Patient
+                </Button>
+                <Button type="button" variant="outline" onClick={() => handleDemoLogin("doctor")} disabled={isLoading}>
+                  Médecin
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleDemoLogin("secretary")}
+                  disabled={isLoading}
+                >
+                  Secrétaire
+                </Button>
+                <Button type="button" variant="outline" onClick={() => handleDemoLogin("admin")} disabled={isLoading}>
+                  Administrateur
+                </Button>
+              </div>
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col">
             <Button type="submit" className="w-full" disabled={isLoading}>
