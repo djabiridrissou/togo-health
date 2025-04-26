@@ -58,9 +58,8 @@ interface SanteTogoDBSchema extends DBSchema {
 
 let db: IDBPDatabase<SanteTogoDBSchema> | null = null
 
-// Replace the seedInitialData function with this version that uses the transaction provided by the upgrade callback
-
-async function seedInitialData(db: IDBPDatabase<SanteTogoDBSchema>, transaction: IDBTransaction) {
+// Function to seed initial data using the transaction provided by the upgrade callback
+function seedInitialData(db: IDBPDatabase<SanteTogoDBSchema>, transaction: IDBTransaction) {
   // Seed users
   const users = [
     {
@@ -280,36 +279,44 @@ async function seedInitialData(db: IDBPDatabase<SanteTogoDBSchema>, transaction:
   ]
 
   // Add all data using the transaction from the upgrade callback
+  const userStore = transaction.objectStore("users")
+  const patientStore = transaction.objectStore("patients")
+  const appointmentStore = transaction.objectStore("appointments")
+  const medicationStore = transaction.objectStore("medications")
+  const medicalRecordStore = transaction.objectStore("medicalRecords")
+  const bloodDonationStore = transaction.objectStore("bloodDonations")
+  const bloodRequestStore = transaction.objectStore("bloodRequests")
+
   for (const user of users) {
-    transaction.objectStore("users").add(user)
+    userStore.add(user)
   }
 
   for (const patient of patients) {
-    transaction.objectStore("patients").add(patient)
+    patientStore.add(patient)
   }
 
   for (const appointment of appointments) {
-    transaction.objectStore("appointments").add(appointment)
+    appointmentStore.add(appointment)
   }
 
   for (const medication of medications) {
-    transaction.objectStore("medications").add(medication)
+    medicationStore.add(medication)
   }
 
   for (const record of medicalRecords) {
-    transaction.objectStore("medicalRecords").add(record)
+    medicalRecordStore.add(record)
   }
 
   for (const donation of bloodDonations) {
-    transaction.objectStore("bloodDonations").add(donation)
+    bloodDonationStore.add(donation)
   }
 
   for (const request of bloodRequests) {
-    transaction.objectStore("bloodRequests").add(request)
+    bloodRequestStore.add(request)
   }
 }
 
-// Also modify the initDB function to handle errors better
+// Modified initDB function to handle errors better
 export async function initDB() {
   if (db) return db
 

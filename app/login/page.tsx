@@ -38,7 +38,6 @@ export default function LoginPage() {
         toast({
           title: "Connexion réussie",
           description: "Vous êtes maintenant connecté à votre compte.",
-          variant: "default",
         })
         router.push("/dashboard")
       } else {
@@ -86,7 +85,6 @@ export default function LoginPage() {
         toast({
           title: `Connexion en tant que ${role} réussie`,
           description: `Vous êtes connecté avec un compte de démonstration (${role}).`,
-          variant: "default",
         })
         router.push("/dashboard")
       }
