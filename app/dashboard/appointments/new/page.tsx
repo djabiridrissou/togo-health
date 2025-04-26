@@ -33,12 +33,17 @@ export default function NewAppointmentPage() {
   const { toast } = useToast()
   const { addAppointment } = useAppContext()
 
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1)
+    }
+  }
+
   const handleNext = () => {
     if (step === 1 && !appointmentType) {
       toast({
         title: "Erreur",
         description: "Veuillez sélectionner un type de rendez-vous",
-        variant: "destructive",
       })
       return
     }
@@ -47,7 +52,6 @@ export default function NewAppointmentPage() {
       toast({
         title: "Erreur",
         description: "Veuillez sélectionner une spécialité et un médecin",
-        variant: "destructive",
       })
       return
     }
@@ -56,7 +60,6 @@ export default function NewAppointmentPage() {
       toast({
         title: "Erreur",
         description: "Veuillez sélectionner une date et une heure",
-        variant: "destructive",
       })
       return
     }
@@ -66,18 +69,11 @@ export default function NewAppointmentPage() {
     }
   }
 
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1)
-    }
-  }
-
   const handleSubmit = () => {
     if (mode === "in-person" && !location) {
       toast({
         title: "Erreur",
         description: "Veuillez sélectionner un lieu pour votre rendez-vous",
-        variant: "destructive",
       })
       return
     }
@@ -87,7 +83,6 @@ export default function NewAppointmentPage() {
       toast({
         title: "Erreur",
         description: "Vous devez être connecté pour prendre un rendez-vous",
-        variant: "destructive",
       })
       return
     }

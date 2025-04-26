@@ -58,7 +58,6 @@ export default function RegisterPage() {
         toast({
           title: "Inscription réussie",
           description: "Votre compte a été créé avec succès.",
-          variant: "default",
         })
         router.push("/login")
       } else {

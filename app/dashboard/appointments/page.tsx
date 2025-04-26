@@ -35,7 +35,7 @@ export default function AppointmentsPage() {
     .filter((appointment) => appointment.status === "completed")
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-  // Fonction pour annuler un rendez-vous
+  // Modifier la fonction handleCancelAppointment
   const handleCancelAppointment = (id: string) => {
     if (!canCancelAppointment) {
       toast({

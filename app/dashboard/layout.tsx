@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     logoutUser()
     toast({
       title: "Déconnexion réussie",
-      description: "Vous avez été déconnecté avec succès.",
+      description: "Vous avez été déconnecté avec succès",
     })
     router.push("/")
   }

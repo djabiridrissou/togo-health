@@ -65,6 +65,7 @@ export default function BloodDonationPage() {
   // Récupérer tous les dons de sang de l'utilisateur
   const myDonations = getUserBloodDonations().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
+  // Modifier la fonction handleDonateSubmit
   const handleDonateSubmit = () => {
     // Valider le formulaire
     if (!donationForm.bloodType || !donationForm.location || !donationForm.date || !donationForm.time) {
@@ -113,6 +114,7 @@ export default function BloodDonationPage() {
     setShowDonateDialog(false)
   }
 
+  // Modifier la fonction handleRequestSubmit
   const handleRequestSubmit = () => {
     // Valider le formulaire
     if (
@@ -174,6 +176,7 @@ export default function BloodDonationPage() {
     setShowRequestDialog(false)
   }
 
+  // Modifier la fonction handleCancelDonation
   const handleCancelDonation = (id: string) => {
     updateBloodDonation(id, { status: "cancelled" })
     toast({

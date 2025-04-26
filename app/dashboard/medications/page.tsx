@@ -62,7 +62,6 @@ export default function MedicationsPage() {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs obligatoires",
-        variant: "destructive",
       })
       return
     }
@@ -72,7 +71,6 @@ export default function MedicationsPage() {
       toast({
         title: "Erreur",
         description: "Vous devez être connecté pour ajouter un médicament",
-        variant: "destructive",
       })
       return
     }

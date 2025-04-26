@@ -37,7 +37,7 @@ export default function LoginPage() {
       if (success) {
         toast({
           title: "Connexion réussie",
-          description: "Vous êtes maintenant connecté à votre compte.",
+          description: "Vous êtes maintenant connecté à votre compte",
         })
         router.push("/dashboard")
       } else {
