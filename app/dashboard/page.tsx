@@ -8,7 +8,6 @@ import { Calendar, Clock, Users, Activity, FileText, Heart, AlertCircle } from "
 import { getUserRole } from "@/lib/auth"
 import { useAppContext } from "@/contexts/app-context"
 import Link from "next/link"
-import { useTransitionRefresh } from "@/hooks/use-transition-refresh"
 
 export default function DashboardPage() {
   const [userRole, setUserRole] = useState<string | null>(null)
@@ -19,7 +18,6 @@ export default function DashboardPage() {
     patients: 0,
   })
 
-  const { isPending, refresh } = useTransitionRefresh()
   const { getUserAppointments, getUserMedications, getUserBloodRequests, getDoctorPatients } = useAppContext()
 
   useEffect(() => {
@@ -58,13 +56,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Tableau de bord</h2>
-        <Button variant="outline" onClick={refresh} disabled={isPending}>
-          {isPending ? "Rafraîchissement..." : "Rafraîchir"}
-        </Button>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

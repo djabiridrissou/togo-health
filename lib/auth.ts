@@ -1,115 +1,109 @@
 "use client"
 
-import { getUserByEmail } from "./in-memory-store"
-import type { User } from "@/types"
+import { getUserByEmail, initDB } from "./db"
 
-// State to hold current user information during the session
-let currentUser: User | null = null
+// Initialiser la base de données au démarrage
+if (typeof window !== "undefined") {
+  initDB()
+}
 
-// Function to login a user
+// État d'authentification
+let currentUser: any = null
+
+// Fonction de connexion
 export async function loginUser(email: string, password: string): Promise<boolean> {
   try {
-    // Get user from in-memory store
-    const user = getUserByEmail(email)
+    // Récupérer l'utilisateur depuis la base de données
+    const user = await getUserByEmail(email)
 
     if (user && user.password === password) {
-      // Store user in memory and in a cookie
+      // Stocker l'utilisateur dans localStorage
+      localStorage.setItem("currentUser", JSON.stringify(user))
       currentUser = user
-
-      // In a client component, we can't use the cookies() API directly
-      // So we'll store the user in memory and use localStorage as a fallback
-      try {
-        typeof window !== "undefined" && localStorage.setItem("currentUser", JSON.stringify(user))
-      } catch (error) {
-        console.warn("Failed to store user in localStorage", error)
-      }
-
       return true
     }
 
     return false
   } catch (error) {
-    console.error("Error during login:", error)
+    console.error("Erreur lors de la connexion:", error)
     return false
   }
 }
 
-// Function to register a new user
-export async function registerUser(userData: Partial<User>): Promise<boolean> {
+// Fonction d'inscription
+export async function registerUser(userData: any): Promise<boolean> {
   try {
-    // Check if user already exists
-    const existingUser = getUserByEmail(userData.email || "")
+    // Vérifier si l'email existe déjà
+    const existingUser = await getUserByEmail(userData.email)
+
     if (existingUser) {
       return false
     }
 
-    // Add new user to in-memory store
-    const { addUser } = await import("./in-memory-store")
-    const newUser = addUser(userData as Omit<User, "id">)
+    // Créer un nouvel utilisateur dans la base de données
+    const { addUser } = await import("./db")
+    await addUser(userData)
 
-    return !!newUser
+    return true
   } catch (error) {
-    console.error("Error during registration:", error)
+    console.error("Erreur lors de l'inscription:", error)
     return false
   }
 }
 
-// Function to logout a user
-export async function logoutUser(): Promise<void> {
+// Fonction de déconnexion
+export function logoutUser(): void {
+  localStorage.removeItem("currentUser")
   currentUser = null
-  try {
-    typeof window !== "undefined" && localStorage.removeItem("currentUser")
-  } catch (error) {
-    console.warn("Failed to remove user from localStorage", error)
+
+  // Rediriger vers la page d'accueil
+  if (typeof window !== "undefined") {
+    window.location.href = "/"
   }
 }
 
-// Function to get the current user
-export function getCurrentUser(): User | null {
+// Obtenir l'utilisateur actuel
+export function getCurrentUser(): any {
   if (currentUser) {
     return currentUser
   }
 
-  // Try to get user from localStorage as fallback
-  try {
-    if (typeof window !== "undefined") {
-      const storedUser = localStorage.getItem("currentUser")
-      if (storedUser) {
-        currentUser = JSON.parse(storedUser)
-        return currentUser
-      }
+  // Essayer de récupérer depuis localStorage
+  if (typeof window !== "undefined") {
+    const storedUser = localStorage.getItem("currentUser")
+    if (storedUser) {
+      currentUser = JSON.parse(storedUser)
+      return currentUser
     }
-  } catch (error) {
-    console.warn("Failed to get user from localStorage", error)
   }
 
   return null
 }
 
-// Function to get the current user's role
+// Obtenir le rôle de l'utilisateur
 export function getUserRole(): string | null {
   const user = getCurrentUser()
   return user ? user.role : null
 }
 
-// Function to check if a user is authenticated
+// Vérifier si l'utilisateur est authentifié
 export function isAuthenticated(): boolean {
   return getCurrentUser() !== null
 }
 
-// Function to check if a user has a specific role
+// Vérifier si l'utilisateur a un rôle spécifique
 export function hasRole(role: string): boolean {
   const user = getCurrentUser()
   return user ? user.role === role : false
 }
 
-// Function to check if a user has any of the specified roles
+// Vérifier si l'utilisateur a l'un des rôles spécifiés
 export function hasAnyRole(roles: string[]): boolean {
   const user = getCurrentUser()
   return user ? roles.includes(user.role) : false
 }
 
-// Function to protect routes based on roles
+// Middleware pour protéger les routes
 export function authMiddleware(allowedRoles: string[] = []): boolean {
   const user = getCurrentUser()
 
