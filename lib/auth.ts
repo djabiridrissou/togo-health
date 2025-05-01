@@ -1,18 +1,19 @@
-"use client"
+'use client';
 
-import { getUserByEmail, addUser, initDB } from "./db"
-import type { UserRole } from "./permissions"
+import { getUserByEmail, addUser, initDB } from './db';
+import type { UserRole } from './permissions';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import { db } from './db';
+import NextAuth from 'next-auth';
+import Google from 'next-auth/providers/google';
 
 // Initialiser la base de données au démarrage
-if (typeof window !== "undefined") {
-  initDB().catch((error) => console.error("Erreur d'initialisation de la base de données:", error))
+if (typeof window !== 'undefined') {
+  initDB().catch((error) => console.error("Erreur d'initialisation de la base de données:", error));
 }
 
 // État d'authentification
-let currentUser: any = null
-
-// Fonction pour initialiser l'utilisateur depuis localStorage au chargement
-export function initCurrentUser() {
+let currentUser: any = null;export function initCurrentUser() {
   if (typeof window !== "undefined" && !currentUser) {
     const storedUser = localStorage.getItem("currentUser")
     if (storedUser) {
@@ -20,14 +21,14 @@ export function initCurrentUser() {
         currentUser = JSON.parse(storedUser)
         // Stocker également le rôle séparément pour un accès facile
         localStorage.setItem("userRole", currentUser.role)
-      } catch (error) {
-        console.error("Erreur lors de la récupération de l'utilisateur:", error)
-        localStorage.removeItem("currentUser")
-        localStorage.removeItem("userRole")
-      }
+      } catch (error) {console.error("Erreur lors de la récupération de l'utilisateur:", error);localStorage.removeItem("currentUser");localStorage.removeItem("userRole");}
     }
   }
   return currentUser
+}
+
+export const {
+  handlers: { GET, POST }, auth, signIn, signOut
 }
 
 // Appeler initCurrentUser au chargement
@@ -185,3 +186,34 @@ export function authMiddleware(allowedRoles: UserRole[] = []): boolean {
 
   return allowedRoles.includes(user.role as UserRole)
 }
+
+export const { auth: authUser } = NextAuth({
+  adapter: PrismaAdapter(db),
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+  callbacks: {
+    jwt({ token, user }) {
+      if (user) {
+        token.role = user.role;
+        token.id = user.id;
+        token.name = user.firstName + ' ' + user.lastName;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        session.user.role = token.role as UserRole;
+        session.user.id = token.id as string;
+        session.user.name = token.name as string;
+      }
+      return session;
+    },
+  },
+  session: {
+    strategy: 'jwt',
+  },
+});
