@@ -2,51 +2,41 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { isAuthenticated, getUserRole } from "@/lib/auth"
-import { hasPermission, type Permission } from "@/lib/permissions"
+import { useEffect } from "react"
+import { useRouter, usePathname } from "next/navigation"
+import { useAuth } from "./auth-provider"
 
-interface AuthGuardProps {
+type AuthGuardProps = {
   children: React.ReactNode
-  requiredPermission?: Permission
+  allowedRoles?: string[]
   fallbackUrl?: string
 }
 
-export function AuthGuard({ children, requiredPermission, fallbackUrl = "/login" }: AuthGuardProps) {
+export function AuthGuard({ children, allowedRoles = [], fallbackUrl = "/login" }: AuthGuardProps) {
+  const { isAuthenticated, userRole, loading } = useAuth()
   const router = useRouter()
-  const [authorized, setAuthorized] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est authentifié
-    const authenticated = isAuthenticated()
-
-    if (!authenticated) {
-      router.push(fallbackUrl)
-      return
-    }
-
-    // Si une permission spécifique est requise, vérifier si l'utilisateur l'a
-    if (requiredPermission) {
-      const userRole = getUserRole()
-      const hasRequiredPermission = hasPermission(userRole, requiredPermission)
-
-      if (!hasRequiredPermission) {
+    if (!loading) {
+      if (!isAuthenticated) {
+        router.push(`${fallbackUrl}?callbackUrl=${encodeURIComponent(pathname)}`)
+      } else if (allowedRoles.length > 0 && !allowedRoles.includes(userRole as string)) {
         router.push("/dashboard")
-        return
       }
     }
+  }, [isAuthenticated, userRole, loading, router, pathname, allowedRoles, fallbackUrl])
 
-    setAuthorized(true)
-  }, [router, requiredPermission, fallbackUrl])
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Chargement...</div>
+  }
 
-  // Afficher un écran de chargement pendant la vérification
-  if (!authorized) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
-      </div>
-    )
+  if (!isAuthenticated) {
+    return null
+  }
+
+  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole as string)) {
+    return null
   }
 
   return <>{children}</>

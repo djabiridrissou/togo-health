@@ -72,7 +72,6 @@ export default function BloodDonationPage() {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs obligatoires",
-        variant: "destructive",
       })
       return
     }
@@ -82,7 +81,6 @@ export default function BloodDonationPage() {
       toast({
         title: "Erreur",
         description: "Vous devez être connecté pour programmer un don de sang",
-        variant: "destructive",
       })
       return
     }
@@ -127,7 +125,6 @@ export default function BloodDonationPage() {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs obligatoires",
-        variant: "destructive",
       })
       return
     }
@@ -137,7 +134,6 @@ export default function BloodDonationPage() {
       toast({
         title: "Erreur",
         description: "Vous devez être connecté pour soumettre une demande de sang",
-        variant: "destructive",
       })
       return
     }
@@ -350,6 +346,7 @@ export default function BloodDonationPage() {
                             variant="outline"
                             size="sm"
                             className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                            onClick={() => handleCancelDonation(donation.id)}
                           >
                             Annuler
                           </Button>

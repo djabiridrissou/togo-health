@@ -1,19 +1,18 @@
-'use client';
+"use client"
 
-import { getUserByEmail, addUser, initDB } from './db';
-import type { UserRole } from './permissions';
-import { PrismaAdapter } from '@auth/prisma-adapter';
-import { db } from './db';
-import NextAuth from 'next-auth';
-import Google from 'next-auth/providers/google';
+import { getUserByEmail, addUser, initDB } from "./db"
+import type { UserRole } from "./permissions"
 
 // Initialiser la base de données au démarrage
-if (typeof window !== 'undefined') {
-  initDB().catch((error) => console.error("Erreur d'initialisation de la base de données:", error));
+if (typeof window !== "undefined") {
+  initDB().catch((error) => console.error("Erreur d'initialisation de la base de données:", error))
 }
 
 // État d'authentification
-let currentUser: any = null;export function initCurrentUser() {
+let currentUser: any = null
+
+// Fonction pour initialiser l'utilisateur depuis localStorage au chargement
+export function initCurrentUser() {
   if (typeof window !== "undefined" && !currentUser) {
     const storedUser = localStorage.getItem("currentUser")
     if (storedUser) {
@@ -21,18 +20,20 @@ let currentUser: any = null;export function initCurrentUser() {
         currentUser = JSON.parse(storedUser)
         // Stocker également le rôle séparément pour un accès facile
         localStorage.setItem("userRole", currentUser.role)
-      } catch (error) {console.error("Erreur lors de la récupération de l'utilisateur:", error);localStorage.removeItem("currentUser");localStorage.removeItem("userRole");}
+      } catch (error) {
+        console.error("Erreur lors de la récupération de l'utilisateur:", error)
+        localStorage.removeItem("currentUser")
+        localStorage.removeItem("userRole")
+      }
     }
   }
   return currentUser
 }
 
-export const {
-  handlers: { GET, POST }, auth, signIn, signOut
-}
-
 // Appeler initCurrentUser au chargement
-initCurrentUser()
+if (typeof window !== "undefined") {
+  initCurrentUser()
+}
 
 // Fonction de connexion
 export async function loginUser(email: string, password: string): Promise<boolean> {
@@ -64,6 +65,47 @@ export async function loginUser(email: string, password: string): Promise<boolea
       localStorage.setItem("currentUser", JSON.stringify(newUser))
       localStorage.setItem("userRole", newUser.role)
       currentUser = newUser
+      return true
+    }
+
+    // Utilisateurs de test pour la démonstration
+    const testUsers = [
+      {
+        id: "1",
+        firstName: "Patient",
+        lastName: "Test",
+        email: "patient@example.com",
+        password: "password123",
+        role: "patient",
+        phoneNumber: "+228 11111111",
+      },
+      {
+        id: "2",
+        firstName: "Médecin",
+        lastName: "Test",
+        email: "medecin@example.com",
+        password: "password123",
+        role: "doctor",
+        phoneNumber: "+228 22222222",
+      },
+      {
+        id: "3",
+        firstName: "Admin",
+        lastName: "Test",
+        email: "admin@example.com",
+        password: "password123",
+        role: "admin",
+        phoneNumber: "+228 33333333",
+      },
+    ]
+
+    // Vérifier si l'email et le mot de passe correspondent à un utilisateur de test
+    const testUser = testUsers.find((user) => user.email === email && user.password === password)
+
+    if (testUser) {
+      localStorage.setItem("currentUser", JSON.stringify(testUser))
+      localStorage.setItem("userRole", testUser.role)
+      currentUser = testUser
       return true
     }
 
@@ -186,34 +228,3 @@ export function authMiddleware(allowedRoles: UserRole[] = []): boolean {
 
   return allowedRoles.includes(user.role as UserRole)
 }
-
-export const { auth: authUser } = NextAuth({
-  adapter: PrismaAdapter(db),
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-        token.id = user.id;
-        token.name = user.firstName + ' ' + user.lastName;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.role = token.role as UserRole;
-        session.user.id = token.id as string;
-        session.user.name = token.name as string;
-      }
-      return session;
-    },
-  },
-  session: {
-    strategy: 'jwt',
-  },
-});
