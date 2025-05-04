@@ -417,16 +417,22 @@ export async function addUser(user: Omit<SanteTogoDBSchema["users"]["value"], "i
   return db.add("users", { ...user, id })
 }
 
-export async function updateUser(id: number, user: Partial<SanteTogoDBSchema["users"]["value"]>) {
+export async function updateUser(id: string, user: Partial<SanteTogoDBSchema["users"]["value"]>) {
   const db = await initDB()
-  const existingUser = await db.get("users", id)
+  const numericId = parseInt(id, 10)
+  if (isNaN(numericId)) return false
+
+  const existingUser = await db.get("users", numericId)
   if (!existingUser) return false
   return db.put("users", { ...existingUser, ...user })
 }
 
-export async function deleteUser(id: number) {
+export async function deleteUser(id: string) {
   const db = await initDB()
-  return db.delete("users", id)
+  const numericId = parseInt(id, 10)
+  if (isNaN(numericId)) return false
+
+  return db.delete("users", numericId)
 }
 
 // CRUD operations for appointments
@@ -610,9 +616,12 @@ export async function getPatientsByDoctor(doctorId: number) {
   return db.getAllFromIndex("patients", "by-doctor", doctorId)
 }
 
-export async function getPatientById(id: number) {
+export async function getPatientById(id: string) {
   const db = await initDB()
-  return db.get("patients", id)
+  const numericId = parseInt(id, 10)
+  if (isNaN(numericId)) return null
+
+  return db.get("patients", numericId)
 }
 
 export async function addPatient(patient: Omit<Patient, "id">) {
@@ -621,14 +630,20 @@ export async function addPatient(patient: Omit<Patient, "id">) {
   return db.add("patients", { ...patient, id })
 }
 
-export async function updatePatient(id: number, patient: Partial<Patient>) {
+export async function updatePatient(id: string, patient: Partial<Patient>) {
   const db = await initDB()
-  const existingPatient = await db.get("patients", id)
+  const numericId = parseInt(id, 10)
+  if (isNaN(numericId)) return false
+
+  const existingPatient = await db.get("patients", numericId)
   if (!existingPatient) return false
   return db.put("patients", { ...existingPatient, ...patient })
 }
 
-export async function deletePatient(id: number) {
+export async function deletePatient(id: string) {
   const db = await initDB()
-  return db.delete("patients", id)
+  const numericId = parseInt(id, 10)
+  if (isNaN(numericId)) return false
+
+  return db.delete("patients", numericId)
 }

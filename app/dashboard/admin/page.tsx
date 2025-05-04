@@ -9,11 +9,50 @@ import { Shield, Settings, Plus, Edit, Trash2 } from "lucide-react"
 import { useAppContext } from "@/contexts/app-context"
 import { AuthGuard } from "@/components/auth-guard"
 import { getUserRole } from "@/lib/auth"
+import EditUser from "./edit-user"
+import { useToast } from "@/hooks/use-toast"
+import Link from "next/link"
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("users")
-  const { patients, appointments, medicalRecords, bloodDonations, bloodRequests } = useAppContext()
+  const [editingUserId, setEditingUserId] = useState<string | null>(null)
+  const { patients, appointments, medicalRecords, bloodDonations, bloodRequests, deleteUser } = useAppContext()
   const userRole = getUserRole()
+  const { toast } = useToast()
+
+  const handleEditUser = (userId: string) => {
+    setEditingUserId(userId)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingUserId(null)
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
+      try {
+        const success = await deleteUser(userId)
+        if (success) {
+          toast({
+            title: "Utilisateur supprimé",
+            description: "L'utilisateur a été supprimé avec succès.",
+          })
+        } else {
+          toast({
+            title: "Échec de la suppression",
+            description: "Une erreur s'est produite lors de la suppression.",
+            variant: "destructive",
+          })
+        }
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: "Une erreur s'est produite. Veuillez réessayer.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
 
   return (
     <AuthGuard allowedRoles={["SYSTEM_ADMIN", "ADMIN"]}>
@@ -35,54 +74,66 @@ export default function AdminPage() {
             <TabsTrigger value="appointments">Rendez-vous</TabsTrigger>
             <TabsTrigger value="records">Dossiers médicaux</TabsTrigger>
             <TabsTrigger value="blood">Dons de sang</TabsTrigger>
+            <TabsTrigger value="logs">
+              <Link href="/dashboard/admin/activity-logs">Journaux d'activité</Link>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Gestion des utilisateurs</CardTitle>
-                  <CardDescription>Gérer les utilisateurs du système</CardDescription>
-                </div>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter un utilisateur
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Nom</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Rôle</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {patients.map((patient) => (
-                      <TableRow key={patient.id}>
-                        <TableCell>{patient.id}</TableCell>
-                        <TableCell>{`${patient.firstName} ${patient.lastName}`}</TableCell>
-                        <TableCell>{patient.email}</TableCell>
-                        <TableCell>Patient</TableCell>
-                        <TableCell className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4 mr-1" />
-                            Modifier
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 border-red-200">
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Supprimer
-                          </Button>
-                        </TableCell>
+            {editingUserId ? (
+              <EditUser userId={editingUserId} onCancel={handleCancelEdit} />
+            ) : (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Gestion des utilisateurs</CardTitle>
+                    <CardDescription>Gérer les utilisateurs du système</CardDescription>
+                  </div>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Ajouter un utilisateur
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Nom</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Rôle</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {patients.map((patient) => (
+                        <TableRow key={patient.id}>
+                          <TableCell>{patient.id}</TableCell>
+                          <TableCell>{`${patient.firstName} ${patient.lastName}`}</TableCell>
+                          <TableCell>{patient.email}</TableCell>
+                          <TableCell>{patient.role || "Patient"}</TableCell>
+                          <TableCell className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEditUser(patient.id)}>
+                              <Edit className="h-4 w-4 mr-1" />
+                              Modifier
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 border-red-200"
+                              onClick={() => handleDeleteUser(patient.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Supprimer
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="appointments" className="space-y-4">

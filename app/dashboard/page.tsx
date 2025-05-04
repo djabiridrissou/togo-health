@@ -39,21 +39,7 @@ export default function DashboardPage() {
     })
   }, [getUserAppointments, getUserMedications, getUserBloodRequests, getDoctorPatients])
 
-  // Filtrer les rendez-vous à venir
-  const upcomingAppointments = getUserAppointments()
-    .filter((a) => a.status === "scheduled")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 2)
-
-  // Filtrer les médicaments actifs
-  const recentMedications = getUserMedications()
-    .filter((m) => m.status === "active")
-    .slice(0, 3)
-
-  // Filtrer les demandes de sang actives
-  const bloodDonationRequests = getUserBloodRequests()
-    .filter((r) => r.status === "active")
-    .slice(0, 2)
+  // Ces données sont déjà calculées dans les statistiques
 
   return (
     <AuthGuard>
@@ -74,26 +60,46 @@ export default function DashboardPage() {
             <CardContent>
               <p className="mb-4">Que souhaitez-vous faire aujourd'hui?</p>
               <div className="grid grid-cols-2 gap-4">
+                {/* Tous les utilisateurs peuvent voir les rendez-vous */}
                 <Link href="/dashboard/appointments">
                   <Button variant="outline" className="w-full">
                     Rendez-vous
                   </Button>
                 </Link>
-                <Link href="/dashboard/medical-record">
-                  <Button variant="outline" className="w-full">
-                    Dossier médical
-                  </Button>
-                </Link>
-                <Link href="/dashboard/medications">
-                  <Button variant="outline" className="w-full">
-                    Médicaments
-                  </Button>
-                </Link>
+
+                {/* Dossier médical visible pour patients, médecins, infirmiers et admin */}
+                {(userRole === "patient" || userRole === "doctor" || userRole === "nurse" || userRole === "admin") && (
+                  <Link href="/dashboard/medical-record">
+                    <Button variant="outline" className="w-full">
+                      Dossier médical
+                    </Button>
+                  </Link>
+                )}
+
+                {/* Médicaments visibles pour patients, médecins, infirmiers et admin */}
+                {(userRole === "patient" || userRole === "doctor" || userRole === "nurse" || userRole === "admin") && (
+                  <Link href="/dashboard/medications">
+                    <Button variant="outline" className="w-full">
+                      Médicaments
+                    </Button>
+                  </Link>
+                )}
+
+                {/* Don de sang visible pour tous */}
                 <Link href="/dashboard/blood-donation">
                   <Button variant="outline" className="w-full">
                     Don de sang
                   </Button>
                 </Link>
+
+                {/* Administration visible uniquement pour les admin */}
+                {(userRole === "admin" || userRole === "ADMIN" || userRole === "SYSTEM_ADMIN") && (
+                  <Link href="/dashboard/admin">
+                    <Button variant="outline" className="w-full">
+                      Administration
+                    </Button>
+                  </Link>
+                )}
               </div>
             </CardContent>
           </Card>

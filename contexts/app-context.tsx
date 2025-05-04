@@ -70,11 +70,12 @@ export type BloodRequest = {
 }
 
 export type Patient = {
-  id: number
+  id: string
   firstName: string
   lastName: string
   email: string
   phoneNumber: string
+  role?: string
   bloodType?: string
   height?: string
   weight?: string
@@ -107,14 +108,17 @@ type AppContextType = {
   updateBloodRequest: (id: string, request: Partial<BloodRequest>) => Promise<void>
   deleteBloodRequest: (id: string) => Promise<void>
   addPatient: (patient: Omit<Patient, "id">) => Promise<void>
-  updatePatient: (id: number, patient: Partial<Patient>) => Promise<void>
-  deletePatient: (id: number) => Promise<void>
+  updatePatient: (id: string, patient: Partial<Patient>) => Promise<void>
+  deletePatient: (id: string) => Promise<void>
   getUserAppointments: () => Appointment[]
   getUserMedications: () => Medication[]
   getUserMedicalRecords: () => MedicalRecord[]
   getUserBloodDonations: () => BloodDonation[]
   getUserBloodRequests: () => BloodRequest[]
   getDoctorPatients: () => Patient[]
+  getUserById: (id: string) => Patient | undefined
+  updateUser: (id: string, userData: Partial<Patient>) => Promise<boolean>
+  deleteUser: (id: string) => Promise<boolean>
   refreshData: () => Promise<void>
   isLoading: boolean
 }
@@ -261,11 +265,12 @@ const demoData = {
   ],
   patients: [
     {
-      id: 1,
+      id: "1",
       firstName: "John",
       lastName: "Doe",
       email: "patient@example.com",
       phoneNumber: "+228 90123456",
+      role: "patient",
       bloodType: "A+",
       height: "175 cm",
       weight: "70 kg",
@@ -274,17 +279,34 @@ const demoData = {
       doctorId: 2,
     },
     {
-      id: 5,
+      id: "2",
       firstName: "Marie",
       lastName: "Dupont",
       email: "marie@example.com",
       phoneNumber: "+228 94567890",
+      role: "patient",
       bloodType: "B+",
       height: "165 cm",
       weight: "60 kg",
       allergies: ["Lactose"],
       chronicConditions: [],
       doctorId: 2,
+    },
+    {
+      id: "3",
+      firstName: "Dr. Kofi",
+      lastName: "Mensah",
+      email: "medecin@example.com",
+      phoneNumber: "+228 91234567",
+      role: "doctor",
+    },
+    {
+      id: "4",
+      firstName: "Admin",
+      lastName: "Système",
+      email: "admin@example.com",
+      phoneNumber: "+228 92345678",
+      role: "admin",
     },
   ],
 }
@@ -352,42 +374,132 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Fonctions pour manipuler les rendez-vous
   const addAppointment = async (appointment: Omit<Appointment, "id">) => {
     try {
-      await db.addAppointment(appointment)
+      // Importer la fonction de journalisation
+      const { logActivity } = await import("@/lib/activity-log")
+
+      // Ajouter le rendez-vous dans la base de données
+      const id = await db.addAppointment(appointment)
+
+      // Journaliser l'action
+      await logActivity(
+        "CREATE",
+        "APPOINTMENT",
+        id,
+        `Création d'un rendez-vous avec ${appointment.doctor} le ${appointment.date}`,
+        true
+      )
+
+      refreshData()
     } catch (error) {
       console.error("Erreur lors de l'ajout du rendez-vous:", error)
+
+      // Journaliser l'erreur
+      try {
+        const { logActivity } = await import("@/lib/activity-log")
+        await logActivity(
+          "CREATE",
+          "APPOINTMENT",
+          undefined,
+          `Erreur lors de la création d'un rendez-vous`,
+          false,
+          error instanceof Error ? error.message : "Erreur inconnue"
+        )
+      } catch (logError) {
+        console.error("Erreur lors de la journalisation:", logError)
+      }
+
       // Ajouter localement en cas d'erreur
       const newAppointment = {
         ...appointment,
         id: `local-${Date.now()}`,
       }
       setAppointments((prev) => [...prev, newAppointment as Appointment])
-      return
     }
-    refreshData()
   }
 
   const updateAppointment = async (id: string, appointment: Partial<Appointment>) => {
     try {
+      // Importer la fonction de journalisation
+      const { logActivity } = await import("@/lib/activity-log")
+
+      // Mettre à jour le rendez-vous dans la base de données
       await db.updateAppointment(id, appointment)
+
+      // Journaliser l'action
+      await logActivity(
+        "UPDATE",
+        "APPOINTMENT",
+        id,
+        `Mise à jour d'un rendez-vous${appointment.status ? ` (statut: ${appointment.status})` : ''}`,
+        true
+      )
+
+      refreshData()
     } catch (error) {
       console.error("Erreur lors de la mise à jour du rendez-vous:", error)
+
+      // Journaliser l'erreur
+      try {
+        const { logActivity } = await import("@/lib/activity-log")
+        await logActivity(
+          "UPDATE",
+          "APPOINTMENT",
+          id,
+          `Erreur lors de la mise à jour d'un rendez-vous`,
+          false,
+          error instanceof Error ? error.message : "Erreur inconnue"
+        )
+      } catch (logError) {
+        console.error("Erreur lors de la journalisation:", logError)
+      }
+
       // Mettre à jour localement en cas d'erreur
       setAppointments((prev) => prev.map((item) => (item.id === id ? { ...item, ...appointment } : item)))
-      return
     }
-    refreshData()
   }
 
   const deleteAppointment = async (id: string) => {
     try {
+      // Importer la fonction de journalisation
+      const { logActivity } = await import("@/lib/activity-log")
+
+      // Récupérer les informations du rendez-vous avant de le supprimer
+      const appointment = appointments.find(a => a.id === id)
+
+      // Supprimer le rendez-vous de la base de données
       await db.deleteAppointment(id)
+
+      // Journaliser l'action
+      await logActivity(
+        "DELETE",
+        "APPOINTMENT",
+        id,
+        `Suppression d'un rendez-vous${appointment ? ` avec ${appointment.doctor} le ${appointment.date}` : ''}`,
+        true
+      )
+
+      refreshData()
     } catch (error) {
       console.error("Erreur lors de la suppression du rendez-vous:", error)
+
+      // Journaliser l'erreur
+      try {
+        const { logActivity } = await import("@/lib/activity-log")
+        await logActivity(
+          "DELETE",
+          "APPOINTMENT",
+          id,
+          `Erreur lors de la suppression d'un rendez-vous`,
+          false,
+          error instanceof Error ? error.message : "Erreur inconnue"
+        )
+      } catch (logError) {
+        console.error("Erreur lors de la journalisation:", logError)
+      }
+
       // Supprimer localement en cas d'erreur
       setAppointments((prev) => prev.filter((item) => item.id !== id))
-      return
     }
-    refreshData()
   }
 
   // Fonctions pour manipuler les médicaments
@@ -563,7 +675,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       // Ajouter localement en cas d'erreur
       const newPatient = {
         ...patient,
-        id: Date.now(),
+        id: `local-${Date.now()}`,
       }
       setPatients((prev) => [...prev, newPatient as Patient])
       return
@@ -571,7 +683,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     refreshData()
   }
 
-  const updatePatient = async (id: number, patient: Partial<Patient>) => {
+  const updatePatient = async (id: string, patient: Partial<Patient>) => {
     try {
       await db.updatePatient(id, patient)
     } catch (error) {
@@ -583,7 +695,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     refreshData()
   }
 
-  const deletePatient = async (id: number) => {
+  const deletePatient = async (id: string) => {
     try {
       await db.deletePatient(id)
     } catch (error) {
@@ -593,6 +705,37 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return
     }
     refreshData()
+  }
+
+  // Fonctions pour la gestion des utilisateurs
+  const getUserById = (id: string) => {
+    return patients.find((patient) => patient.id === id)
+  }
+
+  const updateUser = async (id: string, userData: Partial<Patient>): Promise<boolean> => {
+    try {
+      await db.updateUser(id, userData)
+      refreshData()
+      return true
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de l'utilisateur:", error)
+      // Mettre à jour localement en cas d'erreur
+      setPatients((prev) => prev.map((item) => (item.id === id ? { ...item, ...userData } : item)))
+      return true // Pour la démo, on retourne true même en cas d'erreur
+    }
+  }
+
+  const deleteUser = async (id: string): Promise<boolean> => {
+    try {
+      await db.deleteUser(id)
+      refreshData()
+      return true
+    } catch (error) {
+      console.error("Erreur lors de la suppression de l'utilisateur:", error)
+      // Supprimer localement en cas d'erreur
+      setPatients((prev) => prev.filter((item) => item.id !== id))
+      return true // Pour la démo, on retourne true même en cas d'erreur
+    }
   }
 
   // Fonctions pour obtenir les données de l'utilisateur actuel
@@ -678,6 +821,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         getUserBloodDonations,
         getUserBloodRequests,
         getDoctorPatients,
+        getUserById,
+        updateUser,
+        deleteUser,
         refreshData,
         isLoading,
       }}

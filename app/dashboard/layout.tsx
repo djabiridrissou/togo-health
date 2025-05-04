@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
-import { Heart, Menu, X, Calendar, FileText, Pill, Droplet, Users, Home, LogOut } from "lucide-react"
+import { Heart, Menu, X, Calendar, FileText, Pill, Droplet, Users, Home, LogOut, User } from "lucide-react"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -18,18 +18,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = userRole === "admin"
   const isDoctor = userRole === "doctor"
 
-  const navigation = [
+  // Définir les liens de navigation de base
+  const baseNavigation = [
     { name: "Accueil", href: "/dashboard", icon: Home },
-    { name: "Rendez-vous", href: "/dashboard/appointments", icon: Calendar },
-    { name: "Dossier médical", href: "/dashboard/medical-record", icon: FileText },
-    { name: "Médicaments", href: "/dashboard/medications", icon: Pill },
-    { name: "Don de sang", href: "/dashboard/blood-donation", icon: Droplet },
+    { name: "Profil", href: "/dashboard/profile", icon: User },
   ]
 
-  // Ajouter des liens spécifiques aux rôles
-  if (isAdmin) {
-    navigation.push({ name: "Administration", href: "/dashboard/admin", icon: Users })
+  // Ajouter des liens en fonction du rôle
+  const roleBasedNavigation = () => {
+    const links = [...baseNavigation]
+
+    // Tous les utilisateurs peuvent voir les rendez-vous
+    links.push({ name: "Rendez-vous", href: "/dashboard/appointments", icon: Calendar })
+
+    // Patients et médecins peuvent voir les dossiers médicaux
+    if (userRole === "patient" || userRole === "doctor" || userRole === "nurse" || userRole === "admin") {
+      links.push({ name: "Dossier médical", href: "/dashboard/medical-record", icon: FileText })
+    }
+
+    // Patients et médecins peuvent voir les médicaments
+    if (userRole === "patient" || userRole === "doctor" || userRole === "nurse" || userRole === "admin") {
+      links.push({ name: "Médicaments", href: "/dashboard/medications", icon: Pill })
+    }
+
+    // Tous les utilisateurs peuvent voir les dons de sang
+    links.push({ name: "Don de sang", href: "/dashboard/blood-donation", icon: Droplet })
+
+    // Seuls les administrateurs peuvent accéder à la page d'administration
+    if (userRole === "admin" || userRole === "ADMIN" || userRole === "SYSTEM_ADMIN") {
+      links.push({ name: "Administration", href: "/dashboard/admin", icon: Users })
+    }
+
+    return links
   }
+
+  const navigation = roleBasedNavigation()
 
   return (
     <AuthGuard>
