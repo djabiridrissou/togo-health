@@ -1,7 +1,7 @@
 "use client"
 
 import { getUserByEmail, addUser, initDB } from "./db"
-import type { UserRole } from "./permissions"
+import type { UserRole } from "./permissions.tsx"
 
 // Initialiser la base de données au démarrage
 if (typeof window !== "undefined") {

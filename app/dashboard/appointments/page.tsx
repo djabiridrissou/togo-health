@@ -8,7 +8,7 @@ import { Calendar, Clock, MapPin, User, Plus, Video } from "lucide-react"
 import { useAppContext } from "@/contexts/app-context"
 import { useToast } from "@/hooks/use-toast"
 import { getUserRole } from "@/lib/auth"
-import { hasPermission } from "@/lib/permissions"
+import { hasPermission } from "@/lib/permissions.tsx"
 import { AuthGuard } from "@/components/auth-guard"
 import Link from "next/link"
 
@@ -54,7 +54,7 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <AuthGuard requiredPermission="view_appointments">
+    <AuthGuard allowedRoles={["PATIENT", "DOCTOR", "NURSE", "ADMIN", "SYSTEM_ADMIN"]}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold tracking-tight">Rendez-vous</h2>

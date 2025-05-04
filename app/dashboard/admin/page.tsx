@@ -16,7 +16,7 @@ export default function AdminPage() {
   const userRole = getUserRole()
 
   return (
-    <AuthGuard requiredPermission="admin_access">
+    <AuthGuard allowedRoles={["SYSTEM_ADMIN", "ADMIN"]}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
