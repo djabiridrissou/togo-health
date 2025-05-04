@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 enum UserRole {
@@ -44,12 +44,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -185,7 +185,7 @@ model MedicalRecord {
   patientId   String
   doctorId    String?
   title       String
-  description String   @db.Text
+  description String
   date        DateTime
   type        String   // CONSULTATION, TEST, SURGERY, etc.
   attachments String?  // JSON array of attachment URLs
@@ -222,8 +222,8 @@ model Prescription {
   patientId   String
   doctorId    String
   date        DateTime
-  medications String   @db.Text // JSON array of medications
-  instructions String?  @db.Text
+  medications String   // JSON array of medications
+  instructions String?
   duration    Int?     // Duration in days
   isApproved  Boolean  @default(false)
   createdAt   DateTime @default(now())
@@ -238,7 +238,7 @@ model Message {
   id          String   @id @default(cuid())
   senderId    String
   receiverId  String
-  content     String   @db.Text
+  content     String
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -252,7 +252,7 @@ model HealthCampaign {
   id          String   @id @default(cuid())
   clinicId    String
   title       String
-  description String   @db.Text
+  description String
   startDate   DateTime
   endDate     DateTime
   type        String   // BLOOD_DONATION, VACCINATION, AWARENESS, etc.
