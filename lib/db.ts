@@ -366,7 +366,7 @@ export async function initDB() {
         }
 
         // Seed initial data using the transaction provided by the upgrade callback
-        seedInitialData(db, transaction)
+        // seedInitialData(db, transaction)
       },
       blocked() {
         console.warn("Database opening blocked. Another tab might be using it.")
@@ -627,7 +627,7 @@ export async function getPatientById(id: string) {
 export async function addPatient(patient: Omit<Patient, "id">) {
   const db = await initDB()
   const id = Date.now()
-  return db.add("patients", { ...patient, id })
+  //return db.add("patients", { ...patient, id })
 }
 
 export async function updatePatient(id: string, patient: Partial<Patient>) {
